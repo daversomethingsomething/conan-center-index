@@ -25,6 +25,13 @@ class GccConan(ConanFile):
     license = "GPL-3.0-only"
     settings = "os", "compiler", "arch", "build_type"
 
+    options = {
+        "install_prefix": [None, "ANY"],
+    }
+    default_options = {
+        "install_prefix": None,
+	}
+
     def configure(self):
         if self.settings.compiler in ["clang", "apple-clang"]:
             # Can't remove this from cxxflags with autotools - so get rid of it
@@ -37,11 +44,16 @@ class GccConan(ConanFile):
         if self.settings.os == "Linux":
             # binutils recipe is broken for Macos, and Windows uses tools
             # distributed with msys/mingw
-            self.tool_requires("binutils/2.42")
+            self.tool_requires("binutils/2.44")
         self.tool_requires("flex/2.6.4")
 
     def requirements(self):
+#TODO - only applies without install_prefix
         self.requires("mpc/1.2.0")
+
+#        yum = package_manager.Yum(self)
+#        yum.install([f"{ install_prefix }-mpc-1.2.0"], update=True, check=True)
+
         self.requires("mpfr/4.2.0")
         self.requires("gmp/6.3.0")
         self.requires("zlib/[>=1.2.13 <2]")
@@ -81,7 +93,17 @@ class GccConan(ConanFile):
         buildenv = VirtualBuildEnv(self)
         buildenv.generate()
 
-        tc = AutotoolsToolchain(self)
+        tc = None
+        if self.options.install_prefix:
+            tc = AutotoolsToolchain(self, prefix=self.options.install_prefix)
+            
+            # GCC works best when locked to the binutils used to build GCC in the first place.
+            tc.configure_args.append("--with-as=" + os.path.join(str(self.options.install_prefix), "bin", "as"))
+            tc.configure_args.append("--with-ld=" + os.path.join(str(self.options.install_prefix), "bin", "ld"))
+
+        else:
+            tc = AutotoolsToolchain(self)
+
         tc.configure_args.append("--enable-languages=c,c++,fortran")
         tc.configure_args.append("--disable-nls")
         tc.configure_args.append("--disable-multilib")
@@ -133,7 +155,11 @@ class GccConan(ConanFile):
 
         autotools = Autotools(self)
         autotools.configure()
-        autotools.make()
+        try:
+            autotools.make()
+        except Exception:
+#            self.run("make")
+            autotools.make(args=['-j', '1'])
 
     def package(self):
         autotools = Autotools(self)
@@ -149,12 +175,17 @@ class GccConan(ConanFile):
             keep_path=False,
         )
 
+    def deploy(self):
+        copy(self, "*", src=self.package_folder, dst=self.deploy_folder)
+
     def package_info(self):
         if self.settings.os in ["Linux", "FreeBSD"]:
             self.cpp_info.system_libs.append("m")
             self.cpp_info.system_libs.append("rt")
             self.cpp_info.system_libs.append("pthread")
             self.cpp_info.system_libs.append("dl")
+
+        self.user_info.install_prefix = self.options.install_prefix
 
         bindir = os.path.join(self.package_folder, "bin")
 
