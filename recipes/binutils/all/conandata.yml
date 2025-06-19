@@ -1,7 +1,6 @@
 sources:
   "2.44":
-    url: "file:///workspaces/ConanToolchain/src/demo/toolchain/src/binutils-2.44.tar.xz"
-#    url: "https://ftp.gnu.org/gnu/binutils/binutils-2.44.tar.xz"
+    url: "https://ftp.gnu.org/gnu/binutils/binutils-2.44.tar.xz"
     sha256: "ce2017e059d63e67ddb9240e9d4ec49c2893605035cd60e92ad53177f4377237"
   "2.42":
     url: "https://ftp.gnu.org/gnu/binutils/binutils-2.42.tar.xz"
