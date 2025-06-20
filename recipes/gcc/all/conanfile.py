@@ -36,7 +36,7 @@ class GccConan(ConanFile):
         if self.settings.compiler in ["clang", "apple-clang"]:
             # Can't remove this from cxxflags with autotools - so get rid of it
             del self.settings.compiler.libcxx
-            
+
         # https://github.com/gcc-mirror/gcc/blob/6b5248d15c6d10325c6cbb92a0e0a9eb04e3f122/libcody/configure#L2505C11-L2505C25
         del self.settings.compiler.cppstd
 
@@ -96,7 +96,7 @@ class GccConan(ConanFile):
         tc = None
         if self.options.install_prefix:
             tc = AutotoolsToolchain(self, prefix=self.options.install_prefix)
-            
+
             # GCC works best when locked to the binutils used to build GCC in the first place.
             tc.configure_args.append("--with-as=" + os.path.join(str(self.options.install_prefix), "bin", "as"))
             tc.configure_args.append("--with-ld=" + os.path.join(str(self.options.install_prefix), "bin", "ld"))
@@ -134,24 +134,25 @@ class GccConan(ConanFile):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
 
     def build(self):
-        # If building on x86_64, change the default directory name for 64-bit libraries to "lib":
-        replace_in_file(
-            self,
-            os.path.join(self.source_folder, "gcc", "config", "i386", "t-linux64"),
-            "m64=../lib64",
-            "m64=../lib",
-            strict=False,
-        )
+        if not self.options.install_prefix:
+            # If building on x86_64, change the default directory name for 64-bit libraries to "lib":
+            replace_in_file(
+                self,
+                os.path.join(self.source_folder, "gcc", "config", "i386", "t-linux64"),
+                "m64=../lib64",
+                "m64=../lib",
+                strict=False,
+            )
 
-        # Ensure correct install names when linking against libgcc_s;
-        # see discussion in https://github.com/Homebrew/legacy-homebrew/pull/34303
-        replace_in_file(
-            self,
-            os.path.join(self.source_folder, "libgcc", "config", "t-slibgcc-darwin"),
-            "@shlib_slibdir@",
-            os.path.join(self.package_folder, "lib"),
-            strict=False,
-        )
+            # Ensure correct install names when linking against libgcc_s;
+            # see discussion in https://github.com/Homebrew/legacy-homebrew/pull/34303
+            replace_in_file(
+                self,
+                os.path.join(self.source_folder, "libgcc", "config", "t-slibgcc-darwin"),
+                "@shlib_slibdir@",
+                os.path.join(self.package_folder, "lib"),
+                strict=False,
+            )
 
         autotools = Autotools(self)
         autotools.configure()
@@ -189,27 +190,36 @@ class GccConan(ConanFile):
 
         bindir = os.path.join(self.package_folder, "bin")
 
-        cc = os.path.join(bindir, f"gcc-{self.version}")
+        if self.options.install_prefix:
+            cc = os.path.join(bindir, f"gcc")
+            cxx = os.path.join(bindir, f"g++")
+            fc = os.path.join(bindir, f"gfortran")
+            ar = os.path.join(bindir, f"gcc-ar")
+            nm = os.path.join(bindir, f"gcc-nm")
+            ranlib = os.path.join(bindir, f"gcc-ranlib")
+        else:
+            cc = os.path.join(bindir, f"gcc-{self.version}")
+            cxx = os.path.join(bindir, f"g++-{self.version}")
+            fc = os.path.join(bindir, f"gfortran-{self.version}")
+            ar = os.path.join(bindir, f"gcc-ar-{self.version}")
+            nm = os.path.join(bindir, f"gcc-nm-{self.version}")
+            ranlib = os.path.join(bindir, f"gcc-ranlib-{self.version}")
+
         self.output.info("Creating CC env var with: " + cc)
         self.buildenv_info.define("CC", cc)
 
-        cxx = os.path.join(bindir, f"g++-{self.version}")
         self.output.info("Creating CXX env var with: " + cxx)
         self.buildenv_info.define("CXX", cxx)
 
-        fc = os.path.join(bindir, f"gfortran-{self.version}")
         self.output.info("Creating FC env var with: " + fc)
         self.buildenv_info.define("FC", fc)
 
-        ar = os.path.join(bindir, f"gcc-ar-{self.version}")
         self.output.info("Creating AR env var with: " + ar)
         self.buildenv_info.define("AR", ar)
 
-        nm = os.path.join(bindir, f"gcc-nm-{self.version}")
         self.output.info("Creating NM env var with: " + nm)
         self.buildenv_info.define("NM", nm)
 
-        ranlib = os.path.join(bindir, f"gcc-ranlib-{self.version}")
         self.output.info("Creating RANLIB env var with: " + ranlib)
         self.buildenv_info.define("RANLIB", ranlib)
 
