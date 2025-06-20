@@ -103,6 +103,7 @@ class GccConan(ConanFile):
 
         else:
             tc = AutotoolsToolchain(self)
+            tc.configure_args.append(f"--program-suffix=-{self.version}")
 
         tc.configure_args.append("--enable-languages=c,c++,fortran")
         tc.configure_args.append("--disable-nls")
@@ -114,7 +115,6 @@ class GccConan(ConanFile):
         tc.configure_args.append(f"--with-mpc={self.dependencies['mpc'].package_folder}")
         tc.configure_args.append(f"--with-mpfr={self.dependencies['mpfr'].package_folder}")
         tc.configure_args.append(f"--with-pkgversion=conan GCC {self.version}")
-        tc.configure_args.append(f"--program-suffix=-{self.version}")
         tc.configure_args.append(f"--with-bugurl={self.url}/issues")
 
         if self.settings.os == "Macos":
