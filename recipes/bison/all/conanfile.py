@@ -5,6 +5,7 @@ from conan.tools.files import apply_conandata_patches, copy, export_conandata_pa
 from conan.tools.gnu import Autotools, AutotoolsToolchain
 from conan.tools.layout import basic_layout
 from conan.tools.microsoft import is_msvc, unix_path
+from conan.tools.scm import Version
 import os
 
 required_conan_version = ">=1.54.0"
@@ -44,7 +45,11 @@ class BisonConan(ConanFile):
         basic_layout(self, src_folder="src")
 
     def requirements(self):
-        self.requires("m4/1.4.19")
+        if self.settings.compiler == "gcc" and \
+           Version(self.settings.compiler.version) >= "15.0":
+            self.requires("m4/[>=1.4.20]")
+        else:
+            self.requires("m4/[>=1.4.19]")
 
     def validate(self):
         if is_msvc(self) and self.version == "3.8.2":

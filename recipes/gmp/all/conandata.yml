@@ -28,6 +28,7 @@ patches:
       patch_os: "Emscripten"
       patch_source: "https://github.com/fpelliccioni"
       patch_type: "portability"
+    - patch_file: "patches/6.3.0-0001-configure.patch"
   "6.2.1":
     - patch_file: "patches/0001-msvc-dumpbin-yasm-wrapper.patch"
     - patch_file: "patches/6.x.x-0001-fix-MSVC-next-prime-error.patch"

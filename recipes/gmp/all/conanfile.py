@@ -6,6 +6,7 @@ from conan.tools.files import copy, export_conandata_patches, get, patch, rm, rm
 from conan.tools.gnu import Autotools, AutotoolsToolchain
 from conan.tools.layout import basic_layout
 from conan.tools.microsoft import check_min_vs, is_msvc, unix_path
+from conan.tools.scm import Version
 import os
 import stat
 
@@ -77,7 +78,12 @@ class GmpConan(ConanFile):
             )
 
     def build_requirements(self):
-        self.tool_requires("m4/1.4.19")
+        if self.settings.compiler == "gcc" and \
+           Version(self.settings.compiler.version) >= "15.0":
+            self.requires("m4/[>=1.4.20]")
+        else:
+            self.requires("m4/[>=1.4.19]")
+
         if self._settings_build.os == "Windows":
             self.win_bash = True
             if not self.conf.get("tools.microsoft.bash:path", check_type=str):
